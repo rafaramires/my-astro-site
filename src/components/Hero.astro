@@ -1,0 +1,73 @@
+---
+import Ia from '../assets/ia.png'
+import Ideia from '../assets/ideia.png'
+import Notepad from '../assets/notepad.png'
+---
+
+
+<section class="product-hero">
+    <div class="container">
+        <div class="d-table">
+            <div class="d-table-cell center">
+                <div class="hero-copy">
+                    <h1 class="h1-title">Geração de planos de aulas com o uso da Inteligência artificial</h1>
+                    <p> Cansado de ter que pensar em diversas atividades para usar em sala de aula e escrever planos de aulas, a IA consegue te ajudar nisso e otimizar o seu tempo. </p>
+                    <div class="product-cta">
+                      <a href="#" class="button button-primary u-full-width">Começe agora</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-media">
+            <img src={Ia} alt="Ia">
+            <img src={Ideia} alt="Ideia">
+            <img src={Notepad} alt="Notepad">
+        </div>
+    </div>
+ </section>
+
+ <style lang="scss">
+
+.product-hero {
+    padding: 50px 0;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.hero-copy {
+    max-width: 600px;
+    margin-bottom: 40px;
+}
+
+.hero-media {
+    display: flex;
+    justify-content: center;
+    gap: 180px;
+    flex-wrap: wrap;
+}
+
+.hero-media img {
+    width: 140px;
+    transition: transform 0.3s;
+}
+
+.hero-media img:hover {
+    transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+    .hero-media img {
+        width: 80px;
+    }
+    .hero-media {
+        gap: 20px;
+    }
+}
+
+
+ </style>

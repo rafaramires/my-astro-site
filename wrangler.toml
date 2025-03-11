@@ -1,0 +1,10 @@
+name = "my-astro-site"  # Nome do seu Worker
+main = "workers-site/index.js"  # Caminho para o arquivo de entrada do Worker
+compatibility_date = "2025-03-07"  # Data de compatibilidade do Worker
+workers_dev = true  # Define se o Worker será implantado no subdomínio workers.dev
+
+[site]
+bucket = "./dist"  # Diretório que contém os arquivos estáticos gerados pelo Astro
+
+[build]
+command = "npm run build"  # Comando para construir o projeto Astro
