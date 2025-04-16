@@ -1,0 +1,512 @@
+<div class="container">
+  <h3 class="h1-title">📚 Gerador Inteligente de Planos de Aula</h3>
+
+  <div class="input-group">
+    <label for="materia">Disciplina</label>
+    <input type="text" id="materia" placeholder="Ex: Matemática">
+  </div>
+
+  <div class="input-group">
+    <label for="serie">Série/Nível*</label>
+    <input type="text" id="serie" placeholder="Ex: 5º ano do Fundamental">
+  </div>
+
+  <div class="input-group">
+    <label for="tema">Tema da Aula*</label>
+    <input type="text" id="tema" placeholder="Ex: Operações com Frações">
+  </div>
+
+  <div class="input-group">
+    <label for="email">E-mail para onde será enviado o plano gerado*</label>
+    <input 
+      type="email" 
+      id="email" 
+      placeholder="Ex: email@email.com"
+      pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+      required
+    >
+    <div class="email-error" id="emailError">Por favor, insira um e-mail válido</div>
+  </div>
+  
+  <div class="precos">
+    <button class="preco button button-secondary" data-quantidade="1" data-preco="4.90">
+      <span class="buttonTextSecondary">1 plano - R$4,90</span>
+    </button>
+    <button class="preco button button-secondary" data-quantidade="10" data-preco="19.90">
+      <span class="buttonTextSecondary">10 planos - R$19,90</span>
+    </button>
+    <button class="preco button button-secondary" data-quantidade="30" data-preco="29.90">
+      <span class="buttonTextSecondary">30 planos - R$29,90</span>
+    </button>
+    <button class="preco button button-secondary" data-quantidade="50" data-preco="49.90">
+      <span class="buttonTextSecondary">50 planos - R$49,90</span>
+    </button>
+  </div>
+  
+
+  <button id="gerarButton" class="button button-primary u-full-width" disabled>
+    <span id="buttonText">Gerar plano de aula</span>
+  </button>
+
+  <div class="error" id="errorMessage" style="display: none;"></div>
+
+  <div id="resultado">
+    <div id="result-spinner" style="display: none;">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <button id="botaoPDF" style="display: none;">
+    📥 Baixar Plano em PDF
+  </button>
+</div>
+
+<script>
+  import { jsPDF } from "jspdf";
+
+  function atualizarBotaoGerar(hasAvailablePlans) {
+    const botaoGerar = document.getElementById('gerarButton');
+    const planoSelecionado = document.querySelector('.button-secondary.active');
+    // Habilita o botão se houver planos disponíveis ou um plano selecionado
+    botaoGerar.disabled = !(hasAvailablePlans || planoSelecionado);
+  }
+
+  document.querySelectorAll('.button-secondary').forEach(button => {
+    button.addEventListener('click', function() {
+      document.querySelectorAll('.button-secondary').forEach(btn => btn.classList.remove('active'));
+      this.classList.add('active');
+      atualizarBotaoGerar(false); // Passa false pois aqui o usuário está selecionando um plano
+    });
+  });
+
+  document.querySelectorAll('input').forEach(input => {
+    input.addEventListener('input', hideError);
+  });
+
+  document.getElementById('gerarButton').addEventListener('click', gerarPlano);
+  document.getElementById('botaoPDF').addEventListener('click', exportarPDF);
+
+  async function createPayment(email, planQuantity) {
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'createPayment',
+        email,
+        planQuantity
+      })
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      throw new Error(text || 'Erro ao criar pagamento');
+    }
+
+    try {
+      const data = JSON.parse(text);
+      window.location.href = data.init_point;
+    } catch (e) {
+      throw new Error('Resposta inválida do servidor ao criar pagamento: ' + text);
+    }
+  }
+
+  async function confirmPayment(email, planQuantity) {
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'confirmPayment',
+        email,
+        planQuantity
+      })
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      throw new Error(text || 'Erro ao confirmar pagamento');
+    }
+
+    try {
+      JSON.parse(text);
+    } catch (e) {
+      throw new Error('Resposta inválida do servidor ao confirmar pagamento: ' + text);
+    }
+  }
+
+  async function checkAvailablePlans(email) {
+    const response = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'checkAvailablePlans',
+        email
+      })
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      return false; // Assume que não tem planos se houver erro
+    }
+
+    try {
+      const data = JSON.parse(text);
+      return data.hasAvailablePlans || false; // Retorna true se tiver planos disponíveis
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function gerarPlano() {
+    hideError();
+    document.getElementById('emailError').style.display = 'none';
+
+    const materia = document.getElementById('materia').value.trim();
+    const serie = document.getElementById('serie').value.trim();
+    const tema = document.getElementById('tema').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const planoSelecionado = document.querySelector('.button-secondary.active');
+
+    if (!isValidEmail(email)) {
+      document.getElementById('emailError').style.display = 'block';
+      document.getElementById('email').scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    if (!serie || !tema || !email) {
+      showError('Preencha os campos obrigatórios!');
+      return;
+    }
+
+    const button = document.getElementById('gerarButton');
+    const buttonText = document.getElementById('buttonText');
+    const resultSpinner = document.getElementById('result-spinner');
+
+    try {
+      button.disabled = true;
+      buttonText.textContent = 'Processando...';
+      resultSpinner.style.display = 'block';
+
+      // // Verifica se voltou de um pagamento bem-sucedido
+      // const urlParams = new URLSearchParams(window.location.search);
+      // if (urlParams.get('status') === 'approved') {
+      //   await confirmPayment(email, planoSelecionado ? parseInt(planoSelecionado.dataset.quantidade) : 1);
+      // }
+
+      // // Verifica se o usuário já tem planos disponíveis
+      // const hasAvailablePlans = await checkAvailablePlans(email);
+
+      // if (!hasAvailablePlans && !planoSelecionado) {
+      //   showError('Selecione uma opção de plano ou verifique se você já possui planos disponíveis!');
+      //   return;
+      // }
+
+      // // Se não tem planos disponíveis e selecionou um plano, cria o pagamento
+      // if (!hasAvailablePlans && planoSelecionado) {
+      //   await createPayment(email, parseInt(planoSelecionado.dataset.quantidade));
+      //   return;
+      // }
+
+      // Gera o plano se já tem planos disponíveis
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'generatePlan',
+          email,
+          prompt: 'Crie um plano de aula' +
+                  (materia ? ' para ' + materia : '') +
+                  ' que será ministrado para o(a) ' + serie +
+                  ' que possui o tema principal de(a) ' + tema +
+                  ' e gere no Formato:\\n1. Título\\n2. Objetivos\\n3. Ideias de Atividades com o tema mencionado\\n4. Recursos para realizar as atividades mencionadas'
+        })
+      });
+
+      const text = await response.text();
+      if (!response.ok) {
+        throw new Error(text || 'Erro ao gerar o plano');
+      }
+
+      document.getElementById('resultado').textContent = text;
+      document.getElementById('resultado').scrollIntoView({ behavior: 'smooth' });
+      document.getElementById('botaoPDF').style.display = 'block';
+
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      button.disabled = false;
+      buttonText.textContent = 'Gerar plano de aula';
+      resultSpinner.style.display = 'none';
+      atualizarBotaoGerar(await checkAvailablePlans(email)); // Atualiza o botão após a tentativa
+    }
+  }
+
+  function isValidEmail(email) {
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return re.test(String(email).toLowerCase());
+  }
+
+  function showError(message) {
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+  }
+
+  function hideError() {
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.textContent = '';
+    errorDiv.style.display = 'none';
+  }
+
+  function exportarPDF() {
+    try {
+      const content = document.getElementById('resultado').textContent;
+      if (!content.trim()) {
+        alert("Nenhum conteúdo para exportar!");
+        return;
+      }
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4"
+      });
+      const margin = 15;
+      let yPos = margin;
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text("Plano de Aula", margin, yPos);
+      yPos += 10;
+      doc.setDrawColor(100);
+      doc.setLineWidth(0.5);
+      doc.line(margin, yPos, doc.internal.pageSize.width - margin, yPos);
+      yPos += 15;
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      const splitText = doc.splitTextToSize(content, doc.internal.pageSize.width - 2 * margin);
+      doc.text(splitText, margin, yPos);
+      doc.setFontSize(10);
+      const fileName = "PlanoAula_" + new Date().toLocaleDateString().split('/').join('-') + ".pdf";
+      doc.save(fileName);
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      alert("Erro ao gerar PDF. Verifique o console para detalhes.");
+    }
+  }
+
+  // Verifica planos disponíveis ao carregar a página ou mudar o e-mail
+  window.addEventListener('load', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('status') === 'approved') {
+      gerarPlano();
+    }
+    const emailInput = document.getElementById('email');
+    emailInput.addEventListener('blur', async () => {
+      if (isValidEmail(emailInput.value.trim())) {
+        const hasAvailablePlans = await checkAvailablePlans(emailInput.value.trim());
+        atualizarBotaoGerar(hasAvailablePlans);
+      }
+    });
+  });
+</script>
+
+<style lang="scss">
+   * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+body, html {
+  height: 100%;
+}
+
+.h1-title {
+  color: #a754b2;
+  text-align: center;
+}
+
+.container {
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  width: 100%;
+  min-height: 70vh;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position: center;
+}
+
+.input-group {
+  margin-bottom: 1.0rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1.5rem;
+  transition: border-color 0.2s;
+}
+
+input:focus {
+  outline: none;
+  border-color: #aa31e2;
+}
+
+button {
+  background: #46f337;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.1s;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+button:hover {
+  background: #42e233;
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  background: #c0c0c0 !important;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+#resultado {
+  width: 100%;
+  min-height: 150px;
+  padding: 1.5rem;
+  background: #f1f5f9;
+  border-radius: 8px;
+  margin-top: 2rem;
+  white-space: pre-wrap;
+  position: relative;
+}
+
+.error {
+  background: #eb8c8c;
+  border-radius: 5px;
+  color: #000;
+  text-align: center;
+  margin-top: 1rem;
+  padding: 0.5rem;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #aa31e2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+input:invalid {
+  border-color: #eb8c8c;
+  box-shadow: 0 0 0 3px rgba(235, 140, 140, 0.1);
+}
+
+.email-error {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: none;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 600px) {
+  .container {
+    width: 95%;
+    padding: 1rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  input, button {
+    padding: 0.75rem;
+  }
+
+  .precos {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .preco.button {
+    flex: 1 1 150px;
+    min-width: 120px;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+  .buttonTextSecondary {
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  #gerarButton {
+    order: 1;
+    margin-top: 1rem;
+  }
+  #botaoPDF {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    max-width: 400px;
+    z-index: 10;
+  }
+
+  #resultado {
+    padding-bottom: 100px;
+  }
+}
+
+html, body, #wrap {
+  height: 100%;
+}
+
+body > #wrap {
+  height: auto;
+  min-height: 100%;
+}
+
+#main {
+  overflow: auto;
+  padding-bottom: 150px;
+}
+
+body:before {
+  content: "";
+  height: 100%;
+  float: left;
+  width: 0;
+  margin-top: -32767px;
+}
+</style>

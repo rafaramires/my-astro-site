@@ -27,17 +27,21 @@ const { title } = Astro.props;
 
 
 	:root {
-		--accent: #b506cc;
+		--accent: #a754b2;
     --dark: #000;
     --tenary: #e5c3f5;
 		--base-font: 'Manrope', sans-serif;
 	}
-	html, body {
-		font-family: var(--base-font);
-		margin: 0px;
-		scroll-behavior: smooth;
-    background-image: linear-gradient(to top, #aa31e2 0%, white 100%);
-	}
+	html {
+    min-height: 100%;
+  }
+
+  body {
+  background-image: linear-gradient(to top, #aa31e2 0%, white 100%);
+  background-repeat: no-repeat;
+  background-size: cover;
+  margin: 0;
+}
 
 	.block{
 	  display: block;
@@ -49,66 +53,83 @@ const { title } = Astro.props;
       justify-content: center;
     }
   }
-.text-container{
-  max-width: 600px;
-  margin: 50px auto;
-}
-.h1-title, .h2-title, .s-subtitle, .l-subtitle{
-  font-weight: 700;
-}
-
-.h1-title{
-  font-size: 4rem;
-}
-.h2-title{
-  font-size: 3.2rem;
-}
-.l-subtitle{
-  font-size: 1.9rem;
-}
-
-.s-margin{
-  margin-bottom: 5px;
-}
-.m-margin{
-  margin-bottom: 2rem;
-}
-
-.md-width{
-  width: 300px;
-}
-.s-paragraph{
-  font-size: 1.3rem;
-}
-p{
-  font-size: 1.8rem;
-}
-
-.button{
-  border-radius: 8px;
-  &.button-primary, &.button-primary:hover,  &.button-primary:focus{
-    background: var(--accent);
-    border: var(--accent);
+  .text-container{
+    max-width: 600px;
+    margin: 50px auto;
   }
-  &:hover{
-    opacity: .8;
+  .h1-title, .h2-title, .s-subtitle, .l-subtitle{
+    font-weight: 600;
   }
-}
 
-section{
-  padding: 70px 0;
-}
+  .h1-title{
+    font-size: 3rem;
+  }
+  .h2-title{
+    font-size: 3.2rem;
+  }
+  .l-subtitle{
+    font-size: 1.9rem;
+  }
 
-.center{ 
-    text-align: center; 
-}
+  .s-margin{
+    margin-bottom: 5px;
+  }
+  .m-margin{
+    margin-bottom: 2rem;
+  }
 
-.product-cta{
-  max-width: 250px;
-  margin: 0 auto;
+  .md-width{
+    width: 300px;
+  }
+  .s-paragraph{
+    font-size: 1.3rem;
+  }
+  p{
+    font-size: 1.8rem;
+  }
+
   .button{
-    margin-bottom: 3px;
+    border-radius: 8px;
+    &.button-primary, &.button-primary:hover,  &.button-primary:focus{
+      background: var(--accent);
+      border: var(--accent);
+    }
+    &.button-secondary {
+        background: #fff;
+        border-color: var(--accent);
+        border-width: 1px;
+        color: #a754b2;
+        transition: background-color 0.3s ease; /* Adiciona transição suave */
+        
+        &.active {
+            background-color: #a754b2;
+            color: #fff;
+        }
+    }
+    &:hover{
+      opacity: .8;
+    }
   }
-}
+
+  section{
+    padding: 70px 0;
+  }
+
+  .center{ 
+    text-align: center; 
+  }
+
+  .product-cta{
+    max-width: 250px;
+    margin: 0 auto;
+    .button{
+      margin-bottom: 3px;
+    }
+  }
+
+  .precos {
+    display: flex;
+    gap: 10px;
+  }
 
 </style>

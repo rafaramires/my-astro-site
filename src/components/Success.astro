@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<body>
+  <div class="container">
+    <h1>🎉 Pagamento Concluído!</h1>
+    <p>O plano de aula foi gerado com sucesso e será enviado em breve para o e-mail fornecido: <strong id="emailDisplay">[e-mail]</strong>.</p>
+    <a href="/" class="button">Voltar ao Gerador</a>
+  </div>
+
+  <script>
+    // Pega o e-mail dos parâmetros da URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const email = urlParams.get('email') || 'Não informado';
+    document.getElementById('emailDisplay').textContent = email;
+  </script>
+</body>
+</html>

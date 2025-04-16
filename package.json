@@ -12,7 +12,8 @@
   "dependencies": {
     "@astrojs/netlify": "^2.3.0",
     "@cloudflare/kv-asset-handler": "^0.3.4",
-    "astro": "^2.7.2"
+    "astro": "^2.7.2",
+    "jspdf": "^3.0.0"
   },
   "devDependencies": {
     "sass": "^1.63.6"
