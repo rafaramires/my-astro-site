@@ -1,6 +1,7 @@
 import { defineConfig } from 'astro/config';
+import vercel from '@sveltejs/adapter-vercel'; // ou 'edge' se preferir edge functions
 
 export default defineConfig({
-  output: 'hybrid',
-  // Outras configurações
+  output: 'server',
+  adapter: vercel(),
 });
